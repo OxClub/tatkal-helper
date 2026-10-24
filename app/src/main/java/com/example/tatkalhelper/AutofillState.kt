@@ -15,7 +15,7 @@ object AutofillState {
     @Volatile var events = 0
     @Volatile var lastPkg = ""
     @Volatile var irctcPageSeen = false
-    @Volatile var lastDump = "")
+    @Volatile var lastDump = ""
 
     private var otp: String? = null
     private var otpAt = 0L
