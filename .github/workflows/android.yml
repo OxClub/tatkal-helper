@@ -25,5 +25,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: TatkalHelper-debug-apk
+          name: TatkalHelperV2-debug-apk
           path: app/build/outputs/apk/debug/*.apk

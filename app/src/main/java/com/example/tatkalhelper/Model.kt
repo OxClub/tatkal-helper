@@ -19,5 +19,8 @@ data class Config(
     val password: String = "",
     val passengers: List<Passenger> = emptyList(),
     /** Children under 5 travelling without a berth (IRCTC "infant" section). */
-    val children: List<Passenger> = emptyList()
+    val children: List<Passenger> = emptyList(),
+    /** Paytm, PhonePe, Google Pay, BHIM or "UPI ID" (type your UPI ID only, no app tile). */
+    val upiApp: String = "PhonePe",
+    val upiId: String = ""
 )

@@ -1,4 +1,4 @@
-# Tatkal Helper (personal use)
+# Tatkal Helper V2 (personal use)
 
 Autofills your saved details in the official IRCTC Rail Connect app and on irctc.co.in in your phone browser and reminds you before the Tatkal window.
 Sideload only. Not for Play Store.
@@ -30,6 +30,12 @@ Use "Arm autofill and open IRCTC website" (or the "Website" button on the alarm 
 site in your default browser, so that browser must be one of those listed in `Irctc.BROWSERS`. The login form is filled from your saved ID/password (you type the CAPTCHA and tap Login); mobile and email fields are never touched. Website field names differ from the app, so run
 the Debug dump on the website too and tune the regexes. Browsers expose web pages to accessibility with less
 detail than apps, so some fields may need a tap.
+
+## UPI
+Pick Paytm, PhonePe, Google Pay or BHIM, and optionally save your UPI ID. After the "UPI" payment option is
+selected, the service clicks that app's tile and fills any UPI ID box it finds. Choose "UPI ID only" to skip the
+app tile. Your UPI PIN is never stored or entered by the app; on some gateways tapping an app tile jumps straight
+to that app, where you approve the payment with your own PIN.
 
 ## Children
 Children 5 and above travel with a berth, so list them under Passengers. Children under 5 (no berth) go in the

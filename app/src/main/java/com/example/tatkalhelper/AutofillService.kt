@@ -30,6 +30,8 @@ class AutofillService : AccessibilityService() {
         val pkg = e?.packageName?.toString() ?: return
         val isBrowser = pkg in Irctc.BROWSERS
         if (pkg != Irctc.PKG && !isBrowser) return
+        AutofillState.lastPkg = pkg
+        AutofillState.events++
         if (!AutofillState.isArmed() && !AutofillState.dumpNext) return
 
         val now = SystemClock.uptimeMillis()
@@ -40,13 +42,18 @@ class AutofillService : AccessibilityService() {
         val nodes = ArrayList<AccessibilityNodeInfo>()
         flatten(root, nodes)
 
-        // In a browser, act only while the address bar shows an irctc.co.in page.
-        if (isBrowser && nodes.none { textOf(it).contains(Irctc.WEB_HOST, ignoreCase = true) }) return
-
         if (AutofillState.dumpNext) {
             AutofillState.dumpNext = false
-            dump(root, 0)
+            val sb = StringBuilder()
+            dump(root, 0, sb)
+            AutofillState.lastDump = sb.toString()
+            Log.d("TatkalHelper", AutofillState.lastDump)
         }
+
+        // In a browser, act only while the address bar shows an irctc.co.in page.
+        val onIrctc = !isBrowser || nodes.any { textOf(it).contains(Irctc.WEB_HOST, ignoreCase = true) }
+        AutofillState.irctcPageSeen = onIrctc
+        if (!onIrctc) return
         if (!AutofillState.isArmed()) return
 
         if (cfgGen != AutofillState.generation) {
@@ -57,6 +64,7 @@ class AutofillService : AccessibilityService() {
         fillFields(nodes)
         selectPassengers(nodes)
         selectPayment(nodes)
+        selectUpiApp(nodes)
     }
 
     // ---------- field filling ----------
@@ -74,6 +82,7 @@ class AutofillService : AccessibilityService() {
                 OTP.containsMatchIn(label) -> AutofillState.takeOtp()?.let {
                     if (setText(n, it)) AutofillState.clearOtp()
                 }
+                UPI_ID.containsMatchIn(label) -> once("upi") { setText(n, cfg.upiId) }
                 n.isPassword -> once("login-pass") { setText(n, cfg.password) }
                 LOGIN_USER.containsMatchIn(label) -> once("login-user") { setText(n, cfg.username) }
                 SKIP.containsMatchIn(label) -> {} // other user/login/mobile/email fields: never touch
@@ -119,6 +128,21 @@ class AutofillService : AccessibilityService() {
             it.isVisibleToUser && !it.isEditable && textOf(it).contains(want, ignoreCase = true)
         } ?: return
         once("payment") { safeClick(node) }
+    }
+
+    /** Picks your preferred UPI app tile once the UPI options are on screen. Never taps Pay/Book. */
+    private fun selectUpiApp(nodes: List<AccessibilityNodeInfo>) {
+        val pattern = when (cfg.upiApp) {
+            "Paytm" -> Regex("paytm", RegexOption.IGNORE_CASE)
+            "PhonePe" -> Regex("phone ?pe", RegexOption.IGNORE_CASE)
+            "Google Pay" -> Regex("google ?pay|g ?pay", RegexOption.IGNORE_CASE)
+            "BHIM" -> Regex("bhim", RegexOption.IGNORE_CASE)
+            else -> return // "UPI ID": only fill the UPI ID box
+        }
+        val node = nodes.firstOrNull {
+            it.isVisibleToUser && !it.isEditable && pattern.containsMatchIn(textOf(it))
+        } ?: return
+        once("upiapp") { safeClick(node) }
     }
 
     // ---------- helpers ----------
@@ -171,14 +195,17 @@ class AutofillService : AccessibilityService() {
         for (i in 0 until n.childCount) n.getChild(i)?.let { flatten(it, out) }
     }
 
-    /** Use this to find the real field names/IDs, then tweak the regexes below. Output goes to Logcat. */
-    private fun dump(n: AccessibilityNodeInfo, depth: Int) {
-        Log.d(
-            "TatkalHelper",
-            "  ".repeat(depth) + "${n.className} id=${n.viewIdResourceName} text=${if (n.isPassword) "***" else n.text} " +
-                "desc=${n.contentDescription} hint=${n.hintText} click=${n.isClickable} edit=${n.isEditable}"
-        )
-        for (i in 0 until n.childCount) n.getChild(i)?.let { dump(it, depth + 1) }
+    /** Dumps the screen's node tree (password text masked). Copy it from the app's "Copy last screen dump" button. */
+    private fun dump(n: AccessibilityNodeInfo, depth: Int, sb: StringBuilder) {
+        if (sb.length > 30000) return
+        sb.append("  ".repeat(depth))
+            .append(n.className).append(" id=").append(n.viewIdResourceName)
+            .append(" text=").append(if (n.isPassword) "***" else n.text)
+            .append(" desc=").append(n.contentDescription)
+            .append(" hint=").append(n.hintText)
+            .append(" click=").append(n.isClickable)
+            .append(" edit=").append(n.isEditable).append('\n')
+        for (i in 0 until n.childCount) n.getChild(i)?.let { dump(it, depth + 1, sb) }
     }
 
     companion object {
@@ -191,6 +218,7 @@ class AutofillService : AccessibilityService() {
         private val TRAIN = Regex("\\btrain\\b")
         private val NAME = Regex("\\bname\\b")
         private val AGE = Regex("\\bage\\b")
+        private val UPI_ID = Regex("upi ?id|\\bvpa\\b|virtual payment")
         private val INFANT = Regex("infant|child")
         private val LOGIN_USER = Regex("user ?name|user ?id|login ?id")
         private val SKIP = Regex("user|login|password|passwd|pwd|\\bpin\\b|mobile|phone|e-?mail")

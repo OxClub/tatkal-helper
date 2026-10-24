@@ -33,6 +33,7 @@ class Store(ctx: Context) {
             .put("user", c.username).put("pass", c.password)
             .put("passengers", arr)
             .put("children", toJson(c.children))
+            .put("upiApp", c.upiApp).put("upiId", c.upiId)
         prefs.edit().putString("config", o.toString()).apply()
     }
 
@@ -52,7 +53,8 @@ class Store(ctx: Context) {
                 otpSenders = o.optString("senders", "IRCTC,CRIS"),
                 username = o.optString("user"), password = o.optString("pass"),
                 passengers = list,
-                children = fromJson(o.optJSONArray("children"))
+                children = fromJson(o.optJSONArray("children")),
+                upiApp = o.optString("upiApp", "PhonePe"), upiId = o.optString("upiId")
             )
         } catch (e: Exception) {
             Config()
