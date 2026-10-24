@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Tatkal Helper</string>
+    <string name="service_desc">Fills your saved journey, passenger and OTP details in the IRCTC Rail Connect app and on irctc.co.in in your browser. It never reads other apps, never solves CAPTCHA and never taps Pay or Submit.</string>
+</resources>
